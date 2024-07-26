@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToDo List</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            color: #333333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555555;
+        }
+        .form-group input, .form-group textarea {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #333333;
+        }
+        .form-group textarea {
+            height: 80px;
+            resize: none;
+        }
+        .form-group select {
+            width: calc(100% - 20px);
+            padding: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #333333;
+        }
+        button {
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .todo-list {
+            margin-top: 20px;
+        }
+        .todo-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #ffffff;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
+        }
+        .todo-item.urgent {
+            border-color: #dc3545;
+            background-color: #f8d7da;
+        }
+        .todo-item div {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+        .todo-item div strong {
+            display: block;
+            font-size: 18px;
+            color: #333333;
+        }
+        .todo-item div p {
+            margin: 5px 0;
+            color: #555555;
+        }
+        .todo-item div small {
+            color: #777777;
+        }
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+        .actions button {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+        .actions button:hover {
+            background-color: #0056b3;
+        }
+        .actions button:last-child {
+            background-color: #dc3545;
+        }
+        .actions button:last-child:hover {
+            background-color: #c82333;
+        }
+        .sort-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .sort-group select {
+            padding: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #333333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ToDo List</h1>
+        <div class="sort-group">
+            <label for="sortBy">Sort by:</label>
+            <select id="sortBy">
+                <option value="dueDate">Due Date</option>
+                <option value="title">Title</option>
+            </select>
+        </div>
+        <form id="todoForm">
+            <div class="form-group">
+                <label for="title">Title:</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea id="description" name="description" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="dueDate">Due Date:</label>
+                <input type="date" id="dueDate" name="dueDate" required>
+            </div>
+            <div class="form-group">
+                <label for="tag">Tag:</label>
+                <input type="text" id="tag" name="tag">
+            </div>
+            <button type="submit">Add ToDo</button>
+        </form>
+        <div class="todo-list" id="todoList"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const todoForm = document.getElementById('todoForm');
+            const todoList = document.getElementById('todoList');
+            const sortBy = document.getElementById('sortBy');
+
+            let todos = [];
+
+            const renderTodos = () => {
+                todoList.innerHTML = '';
+                const sortedTodos = sortTodos(todos, sortBy.value);
+                sortedTodos.forEach((todo, index) => {
+                    const todoItem = document.createElement('div');
+                    todoItem.className = 'todo-item';
+                    
+                    if (isUrgent(todo.dueDate)) {
+                        todoItem.classList.add('urgent');
+                    }
+
+                    const todoContent = document.createElement('div');
+                    todoContent.innerHTML = `
+                        <strong>${todo.title}</strong>
+                        <p>${todo.description}</p>
+                        <small>Due: ${todo.dueDate}</small>
+                        <small>Tag: ${todo.tag}</small>
+                    `;
+                    todoItem.appendChild(todoContent);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'actions';
+
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Edit';
+                    editButton.addEventListener('click', () => editTodo(index));
+                    actions.appendChild(editButton);
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', () => deleteTodo(index));
+                    actions.appendChild(deleteButton);
+
+                    todoItem.appendChild(actions);
+                    todoList.appendChild(todoItem);
+                });
+            };
+
+            const addTodo = (todo) => {
+                todos.push(todo);
+                renderTodos();
+            };
+
+            const editTodo = (index) => {
+                const todo = todos[index];
+                document.getElementById('title').value = todo.title;
+                document.getElementById('description').value = todo.description;
+                document.getElementById('dueDate').value = todo.dueDate;
+                document.getElementById('tag').value = todo.tag;
+                todos.splice(index, 1);
+                renderTodos();
+            };
+
+            const deleteTodo = (index) => {
+                if (confirm('Are you sure you want to delete this ToDo?')) {
+                    todos.splice(index, 1);
+                    renderTodos();
+                }
+            };
+
+            const sortTodos = (todos, sortBy) => {
+                if (sortBy === 'dueDate') {
+                    return todos.slice().sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+                } else if (sortBy === 'title') {
+                    return todos.slice().sort((a, b) => a.title.localeCompare(b.title));
+                }
+                return todos;
+            };
+
+            const isUrgent = (dueDate) => {
+                const today = new Date();
+                const due = new Date(dueDate);
+                const diffTime = due - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 3;
+            };
+
+            todoForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const title = document.getElementById('title').value;
+                const description = document.getElementById('description').value;
+                const dueDate = document.getElementById('dueDate').value;
+                const tag = document.getElementById('tag').value;
+
+                const todo = { title, description, dueDate, tag };
+                addTodo(todo);
+
+                todoForm.reset();
+            });
+
+            sortBy.addEventListener('change', renderTodos);
+
+            renderTodos();
+        });
+    </script>
+</body>
+</html>
